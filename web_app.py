@@ -8,6 +8,9 @@ import os, sys, logging
 sys.stdout.reconfigure(encoding='utf-8')
 logging.basicConfig(level=logging.INFO)
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request, jsonify, render_template
 import chromadb
 from chromadb.utils import embedding_functions
@@ -15,7 +18,7 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# API-ключ из окружения
+# API-ключ из окружения (с запасным чтением из .env)
 api_key = os.environ.get('OPENAI_API_KEY')
 if not api_key:
     raise RuntimeError('Укажите OPENAI_API_KEY в переменных окружения')
