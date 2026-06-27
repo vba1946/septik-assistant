@@ -20,8 +20,15 @@ app = Flask(__name__)
 
 # API-ключ из окружения (с запасным чтением из .env)
 api_key = os.environ.get('OPENAI_API_KEY')
+logging.info(f'RAILWAY_SERVICE_NAME={os.environ.get("RAILWAY_SERVICE_NAME", "N/A")}')
+logging.info(f'RAILWAY_PROJECT_NAME={os.environ.get("RAILWAY_PROJECT_NAME", "N/A")}')
 if not api_key:
+    logging.error('OPENAI_API_KEY not found in env vars')
+    for k in sorted(os.environ.keys()):
+        if 'KEY' in k.upper() or 'API' in k.upper() or 'TOKEN' in k.upper() or 'SECRET' in k.upper():
+            logging.info(f'  env[{k}] = {"***" if os.environ[k] else "(empty)"}')
     raise RuntimeError('Укажите OPENAI_API_KEY в переменных окружения')
+logging.info('OPENAI_API_KEY found')
 
 llm = OpenAI(api_key=api_key)
 emb_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=api_key, model_name='text-embedding-3-small')
