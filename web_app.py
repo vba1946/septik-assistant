@@ -35,6 +35,15 @@ def get_config():
             cfg.update(json.load(f))
     except Exception:
         pass
+    if os.environ.get('OPENAI_API_KEY'):
+        cfg['api_key'] = os.environ['OPENAI_API_KEY']
+    if os.environ.get('MODEL'):
+        cfg['model'] = os.environ['MODEL']
+    if os.environ.get('TEMPERATURE'):
+        try:
+            cfg['temperature'] = float(os.environ['TEMPERATURE'])
+        except ValueError:
+            pass
     return cfg
 
 def save_config(cfg):
