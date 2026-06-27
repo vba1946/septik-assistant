@@ -19,14 +19,32 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # API-ключ из окружения (с запасным чтением из .env)
-api_key = os.environ.get('OPENAI_API_KEY')
-logging.info(f'RAILWAY_SERVICE_NAME={os.environ.get("RAILWAY_SERVICE_NAME", "N/A")}')
-logging.info(f'RAILWAY_PROJECT_NAME={os.environ.get("RAILWAY_PROJECT_NAME", "N/A")}')
+logging.info('=== ALL ENV VARS ===')
+for k in sorted(os.environ.keys()):
+    v = os.environ[k]
+    if not v:
+        v_str = '(empty)'
+    elif any(s in k.upper() for s in ('KEY', 'API', 'TOKEN', 'SECRET', 'PASS')):
+        v_str = '***'
+    else:
+        v_str = v[:80] if len(v) > 80 else v
+    logging.info(f'  {k}={v_str}')
+logging.info('=== END ENV VARS ===')
+
+# Try direct os.environ access
+api_key = os.environ.get('OPENAI_API_KEY', '')
 if not api_key:
-    logging.error('OPENAI_API_KEY not found in env vars')
-    for k in sorted(os.environ.keys()):
-        if 'KEY' in k.upper() or 'API' in k.upper() or 'TOKEN' in k.upper() or 'SECRET' in k.upper():
-            logging.info(f'  env[{k}] = {"***" if os.environ[k] else "(empty)"}')
+    # Fallback: try reading from /app/.env
+    try:
+        with open('/app/.env') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('OPENAI_API_KEY='):
+                    api_key = line.split('=', 1)[1]
+                    break
+    except Exception:
+        pass
+if not api_key:
     raise RuntimeError('Укажите OPENAI_API_KEY в переменных окружения')
 logging.info('OPENAI_API_KEY found')
 
