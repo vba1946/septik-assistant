@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Настройки ассистента</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; height: 100vh; display: flex; justify-content: center; align-items: center; }
+.card { width: 520px; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); padding: 32px; }
+.card h1 { font-size: 20px; margin-bottom: 20px; }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333; }
+.form-group select, .form-group input[type="text"], .form-group input[type="number"] { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+.form-group select:focus, .form-group input:focus { border-color: #2b579a; }
+.form-group .hint { font-size: 12px; color: #888; margin-top: 4px; }
+.actions { display: flex; gap: 10px; margin-top: 24px; }
+.actions button, .actions a { padding: 10px 20px; border-radius: 8px; font-size: 14px; text-decoration: none; text-align: center; }
+.actions button { background: #2b579a; color: #fff; border: none; cursor: pointer; }
+.actions button:hover { background: #1e4080; }
+.actions a { background: #e0e0e0; color: #333; }
+.actions a:hover { background: #ccc; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Настройки ассистента</h1>
+  <form method="post" action="/settings">
+    <div class="form-group">
+      <label for="api_key">API-ключ OpenAI</label>
+      <input type="text" id="api_key" name="api_key" placeholder="sk-... (оставьте пустым, чтобы не менять)">
+      <div class="hint">Оставьте пустым, если ключ уже сохранён</div>
+    </div>
+    <div class="form-group">
+      <label for="model">Модель GPT</label>
+      <select id="model" name="model">
+        {% for val, label in models.items() %}
+        <option value="{{ val }}" {% if config.model == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="temperature">Температура (креативность)</label>
+      <input type="number" id="temperature" name="temperature" step="0.1" min="0" max="2" value="{{ config.temperature }}">
+      <div class="hint">0 — строго факты, 1 — сбалансировано, 2 — креативно</div>
+    </div>
+    <div class="actions">
+      <button type="submit">Сохранить</button>
+      <a href="{{ url_for('index') }}">Назад к чату</a>
+    </div>
+  </form>
+</div>
+</body>
+</html>

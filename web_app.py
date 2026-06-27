@@ -1,7 +1,4 @@
-"""Веб-демо RAG-ассистента по септикам.
-Запуск: python web_app.py
-Открыть: http://127.0.0.1:5000
-"""
+"""Веб-демо RAG-ассистента по септикам."""
 import os, sys, json, logging
 sys.stdout.reconfigure(encoding='utf-8')
 logging.basicConfig(level=logging.INFO)
@@ -14,14 +11,44 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for
 app = Flask(__name__)
 app.secret_key = os.urandom(16)
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
+DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
+
+DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
+DEFAULT_TEMPERATURE = 1.0
+
+AVAILABLE_MODELS = {
+    'gpt-4.1-mini-2025-04-14': 'GPT-4.1 Mini',
+    'gpt-4.1-nano-2025-04-14': 'GPT-4.1 Nano',
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-4o': 'GPT-4o',
+}
 
 llm = None
 emb_fn = None
 collection = None
 
+def get_config():
+    cfg = {'model': DEFAULT_MODEL, 'temperature': DEFAULT_TEMPERATURE, 'api_key': ''}
+    try:
+        with open(CONFIG_PATH, 'r') as f:
+            cfg.update(json.load(f))
+    except Exception:
+        pass
+    return cfg
+
+def save_config(cfg):
+    existing = get_config()
+    existing.update(cfg)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(CONFIG_PATH, 'w') as f:
+        json.dump(existing, f, indent=2)
+
 def get_api_key():
-    key = os.environ.get('OPENAI_API_KEY', '')
+    cfg = get_config()
+    key = cfg.get('api_key', '')
+    if not key:
+        key = os.environ.get('OPENAI_API_KEY', '')
     if not key:
         try:
             with open('/app/.env') as f:
@@ -32,25 +59,7 @@ def get_api_key():
                         break
         except Exception:
             pass
-    if not key:
-        try:
-            with open(CONFIG_PATH, 'r') as f:
-                cfg = json.load(f)
-                key = cfg.get('api_key', '')
-        except Exception:
-            pass
     return key
-
-def save_api_key(key):
-    cfg = {}
-    try:
-        with open(CONFIG_PATH, 'r') as f:
-            cfg = json.load(f)
-    except Exception:
-        pass
-    cfg['api_key'] = key
-    with open(CONFIG_PATH, 'w') as f:
-        json.dump(cfg, f)
 
 def init_ai(api_key):
     global llm, emb_fn, collection
@@ -62,8 +71,7 @@ def init_ai(api_key):
     emb_fn = embedding_functions.OpenAIEmbeddingFunction(
         api_key=api_key, model_name='text-embedding-3-small'
     )
-
-    CHROMA_DIR = os.environ.get('CHROMA_DIR', 'chromadb')
+    CHROMA_DIR = os.environ.get('CHROMA_DIR', os.path.join(DATA_DIR, 'chromadb'))
     db = chromadb.PersistentClient(path=CHROMA_DIR)
     try:
         collection = db.get_collection(name='septiki', embedding_function=emb_fn)
@@ -103,12 +111,26 @@ def setup():
     api_key = request.form.get('api_key', '').strip()
     if not api_key:
         return render_template('setup.html', error='Введите ключ')
-    save_api_key(api_key)
+    save_config({'api_key': api_key})
     try:
         init_ai(api_key)
     except Exception as e:
         return render_template('setup.html', error=f'Ошибка: {e}')
     return redirect(url_for('index'))
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if request.method == 'POST':
+        model = request.form.get('model', DEFAULT_MODEL)
+        temperature = float(request.form.get('temperature', DEFAULT_TEMPERATURE))
+        api_key = request.form.get('api_key', '').strip()
+        cfg = {'model': model, 'temperature': temperature}
+        if api_key:
+            cfg['api_key'] = api_key
+        save_config(cfg)
+        return redirect(url_for('settings'))
+    cfg = get_config()
+    return render_template('settings.html', config=cfg, models=AVAILABLE_MODELS)
 
 @app.route('/ask', methods=['POST'])
 def ask():
@@ -122,6 +144,7 @@ def ask():
         except Exception as e:
             return jsonify({'answer': f'Ошибка инициализации: {e}'})
 
+    cfg = get_config()
     data = request.get_json()
     question = data.get('question', '').strip()
     if not question:
@@ -135,9 +158,9 @@ def ask():
     system = INSTRUCTIONS + '\n\n=== БАЗА ЗНАНИЙ ===\n' + context
 
     r = llm.chat.completions.create(
-        model='gpt-4.1-mini-2025-04-14',
+        model=cfg.get('model', DEFAULT_MODEL),
         messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': question}],
-        temperature=1.0
+        temperature=cfg.get('temperature', DEFAULT_TEMPERATURE)
     )
 
     return jsonify({
@@ -148,7 +171,6 @@ def ask():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
-    # Попытка инициализации с ключом из окружения (если есть)
     key = get_api_key()
     if key:
         try:

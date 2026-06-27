@@ -8,9 +8,12 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; height: 100vh; display: flex; justify-content: center; align-items: center; }
 .chat-container { width: 700px; height: 90vh; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-.header { background: #2b579a; color: #fff; padding: 18px 24px; }
+.header { background: #2b579a; color: #fff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+.header-text { flex: 1; }
 .header h1 { font-size: 18px; font-weight: 600; }
 .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+.header .settings-link { color: #fff; opacity: 0.7; text-decoration: none; font-size: 22px; line-height: 1; padding: 0 4px; }
+.header .settings-link:hover { opacity: 1; }
 .messages { flex: 1; overflow-y: auto; padding: 20px 24px; }
 .msg { margin-bottom: 16px; display: flex; }
 .msg.user { justify-content: flex-end; }
@@ -29,8 +32,11 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
 <body>
 <div class="chat-container">
   <div class="header">
-    <h1>Эксперт-консультант по септикам</h1>
-    <p>RAG-ассистент на базе 16 документов</p>
+    <div class="header-text">
+      <h1>Эксперт-консультант по септикам</h1>
+      <p>RAG-ассистент на базе 16 документов</p>
+    </div>
+    <a href="/settings" class="settings-link" title="Настройки">⚙</a>
   </div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
