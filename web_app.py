@@ -15,7 +15,7 @@ DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
-DEFAULT_TEMPERATURE = 1.0
+DEFAULT_TEMPERATURE = 0.3
 
 AVAILABLE_MODELS = {
     'gpt-4.1-mini-2025-04-14': 'GPT-4.1 Mini',
@@ -44,6 +44,7 @@ def get_config():
             cfg['temperature'] = float(os.environ['TEMPERATURE'])
         except ValueError:
             pass
+    logging.info(f'Config: model={cfg["model"]}, temp={cfg["temperature"]}')
     return cfg
 
 def save_config(cfg):
