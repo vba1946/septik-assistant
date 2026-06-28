@@ -16,9 +16,10 @@ CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 MODE = os.environ.get('MODE', '')
 if not MODE:
-    MODE = 'simple' if os.path.exists('/tmp/.simple-mode') else 'pro'
+    domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', os.environ.get('RAILWAY_STATIC_URL', ''))
+    MODE = 'pro' if 'e3d34' in domain else 'simple'
 COLLECTION_NAME = f'septiki_{MODE}'
-logging.info(f'MODE={MODE}')
+logging.info(f'MODE={MODE} domain={domain}')
 
 DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
 DEFAULT_TEMPERATURE = 0.3
