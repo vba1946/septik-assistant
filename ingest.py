@@ -1,7 +1,4 @@
-"""
-Индексация базы знаний в ChromaDB (векторное хранилище).
-Разбивает файлы на чанки, создаёт эмбеддинги, сохраняет локально.
-"""
+"""Индексация базы знаний — создаёт две коллекции: septiki_pro и septiki_simple."""
 import os, re
 from pathlib import Path
 import chromadb
@@ -12,75 +9,60 @@ CHROMA_DIR = Path(__file__).parent / 'chromadb'
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
-
 def chunk_text(text: str, source: str) -> list[dict]:
-    """Разбивает текст на чанки по ~CHUNK_SIZE символов с перекрытием."""
     paragraphs = re.split(r'\n{2,}', text)
-    chunks, current, current_src = [], [], []
+    chunks, current = [], []
     size = 0
-
     for para in paragraphs:
         para = para.strip()
         if not para:
             continue
-        # Если один параграф больше чанка — режем его по предложениям
         if len(para) > CHUNK_SIZE:
             sentences = re.split(r'(?<=[.!?])\s+', para)
             for sent in sentences:
                 if size + len(sent) > CHUNK_SIZE and current:
                     chunks.append({'text': '\n\n'.join(current), 'source': source})
-                    # keep overlap
                     overlap_text = '\n\n'.join(current)[-CHUNK_OVERLAP:]
                     current = [overlap_text] if overlap_text else []
                     size = len(overlap_text)
                 current.append(sent)
                 size += len(sent)
             continue
-
         if size + len(para) > CHUNK_SIZE and current:
             chunks.append({'text': '\n\n'.join(current), 'source': source})
             overlap_text = '\n\n'.join(current)[-CHUNK_OVERLAP:]
             current = [overlap_text] if overlap_text else []
             size = len(overlap_text)
-
         current.append(para)
         size += len(para)
-
     if current:
         chunks.append({'text': '\n\n'.join(current), 'source': source})
-
     return chunks
 
-
-def main():
+def index_collection(collection_name: str, files: list):
     api_key = os.environ.get('OPENAI_API_KEY')
     if not api_key:
-        api_key = input('API-ключ OpenAI: ').strip()
+        raise RuntimeError('Укажите OPENAI_API_KEY')
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     emb_fn = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=api_key,
-        model_name='text-embedding-3-small'
+        api_key=api_key, model_name='text-embedding-3-small'
     )
 
-    # Удаляем старую коллекцию, если есть
     try:
-        client.delete_collection('septiki')
-    except:
+        client.delete_collection(collection_name)
+    except Exception:
         pass
 
     collection = client.create_collection(
-        name='septiki',
+        name=collection_name,
         embedding_function=emb_fn,
         metadata={'hnsw:space': 'cosine'}
     )
 
     all_chunks, all_ids, all_metas = [], [], []
     idx = 0
-
-    for f in sorted(KNOWLEDGE_DIR.iterdir()):
-        if f.suffix != '.txt':
-            continue
+    for f in files:
         text = f.read_text(encoding='utf-8', errors='replace')
         chunks = chunk_text(text, f.stem)
         for c in chunks:
@@ -89,7 +71,6 @@ def main():
             all_metas.append({'source': c['source']})
             idx += 1
 
-    # Загружаем пачками по 100
     batch_size = 100
     for i in range(0, len(all_chunks), batch_size):
         batch_end = min(i + batch_size, len(all_chunks))
@@ -98,11 +79,26 @@ def main():
             ids=all_ids[i:batch_end],
             metadatas=all_metas[i:batch_end]
         )
-        print(f'  Загружено {batch_end}/{len(all_chunks)} чанков')
+    print(f'  {collection_name}: {len(all_chunks)} чанков')
+    return len(all_chunks)
 
-    print(f'\nГотово: {len(all_chunks)} чанков, {len(all_ids)} ID')
+def main():
+    all_files = sorted(KNOWLEDGE_DIR.iterdir())
+    txt_files = [f for f in all_files if f.suffix == '.txt']
+
+    pro_files = [f for f in txt_files if 'PRO' in f.stem]
+    simple_files = [f for f in txt_files if 'PRO' not in f.stem]
+
+    print(f'Файлов: PRO={len(pro_files)}, Simple={len(simple_files)}')
+
+    print('Индексация septiki_pro...')
+    n_pro = index_collection('septiki_pro', pro_files)
+
+    print('Индексация septiki_simple...')
+    n_simple = index_collection('septiki_simple', simple_files)
+
+    print(f'\nГотово: PRO={n_pro} чанков, Simple={n_simple} чанков')
     print(f'Хранилище: {CHROMA_DIR}')
-
 
 if __name__ == '__main__':
     main()

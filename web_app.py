@@ -14,6 +14,9 @@ app.secret_key = os.urandom(16)
 DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
+MODE = os.environ.get('MODE', 'pro')  # 'pro' or 'simple'
+COLLECTION_NAME = f'septiki_{MODE}'
+
 DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
 DEFAULT_TEMPERATURE = 0.3
 
@@ -84,13 +87,13 @@ def init_ai(api_key):
     CHROMA_DIR = os.environ.get('CHROMA_DIR', os.path.join(DATA_DIR, 'chromadb'))
     db = chromadb.PersistentClient(path=CHROMA_DIR)
     try:
-        collection = db.get_collection(name='septiki', embedding_function=emb_fn)
-        logging.info('ChromaDB loaded')
+        collection = db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
+        logging.info(f'ChromaDB loaded ({COLLECTION_NAME})')
     except Exception:
         from ingest import main as ingest_main
-        logging.info('ChromaDB не найдена, запуск индексации...')
+        logging.info(f'ChromaDB {COLLECTION_NAME} не найдена, запуск индексации...')
         ingest_main()
-        collection = db.get_collection(name='septiki', embedding_function=emb_fn)
+        collection = db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
         logging.info('Индексация завершена')
 
 INSTRUCTIONS = """РОЛЬ И НАЗНАЧЕНИЕ
@@ -114,7 +117,14 @@ def index():
     api_key = get_api_key()
     if not api_key:
         return render_template('setup.html')
-    return render_template('chat.html')
+    import glob
+    knowledge_dir = os.path.join(os.path.dirname(__file__), 'knowledge')
+    all_files = sorted(glob.glob(os.path.join(knowledge_dir, '*.txt')))
+    if MODE == 'pro':
+        files = [f for f in all_files if 'PRO' in os.path.basename(f)]
+    else:
+        files = [f for f in all_files if 'PRO' not in os.path.basename(f)]
+    return render_template('chat.html', mode=MODE, doc_count=len(files))
 
 @app.route('/setup', methods=['POST'])
 def setup():
