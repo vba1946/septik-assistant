@@ -92,6 +92,7 @@ def init_ai(api_key):
     except Exception:
         from ingest import main as ingest_main
         logging.info(f'ChromaDB {COLLECTION_NAME} не найдена, запуск индексации...')
+        os.environ['OPENAI_API_KEY'] = api_key
         ingest_main()
         collection = db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
         logging.info('Индексация завершена')
@@ -193,6 +194,7 @@ if __name__ == '__main__':
     debug = os.environ.get('FLASK_ENV') == 'development'
     key = get_api_key()
     if key:
+        os.environ['OPENAI_API_KEY'] = key
         try:
             init_ai(key)
         except Exception as e:
