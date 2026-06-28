@@ -16,12 +16,19 @@ CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 MODE = os.environ.get('MODE', '')
 if not MODE:
-    service_name = os.environ.get('RAILWAY_SERVICE_NAME', '')
-    if 'simple' in service_name.lower() or 'simple' in os.environ.get('RAILWAY_GIT_REPO_NAME', '').lower():
-        MODE = 'simple'
-    else:
-        MODE = 'pro'
+    try:
+        with open('/app/.env') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('MODE='):
+                    MODE = line.split('=', 1)[1]
+                    break
+    except Exception:
+        pass
+if not MODE:
+    MODE = 'pro'
 COLLECTION_NAME = f'septiki_{MODE}'
+logging.info(f'MODE={MODE}')
 
 DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
 DEFAULT_TEMPERATURE = 0.3
