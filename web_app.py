@@ -16,7 +16,7 @@ CONFIG_PATH = os.path.join(DATA_DIR, 'config.json')
 
 MODE = os.environ.get('MODE', '')
 if not MODE:
-    MODE = 'simple' if os.path.exists('/app/.simple-mode') else 'pro'
+    MODE = 'simple' if os.path.exists('/tmp/.simple-mode') else 'pro'
 COLLECTION_NAME = f'septiki_{MODE}'
 logging.info(f'MODE={MODE}')
 
