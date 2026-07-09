@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+demo_assistant/chromadb/
+demo_assistant/tokens.db
+demo_assistant/.token_secret

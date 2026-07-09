@@ -1,0 +1,6 @@
+chromadb/
+tokens.db
+.token_secret
+.env
+__pycache__/
+*.pyc
