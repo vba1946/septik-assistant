@@ -21,11 +21,14 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
 .msg .bubble { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 .msg.user .bubble { background: #2b579a; color: #fff; border-bottom-right-radius: 4px; }
 .msg.bot .bubble { background: #f0f2f5; color: #1a1a1a; border-bottom-left-radius: 4px; }
-.input-area { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid #e0e0e0; }
-.input-area input { flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+.input-area { display: flex; gap: 10px; padding: 12px 24px 16px; border-top: 1px solid #e0e0e0; align-items: center; flex-wrap: wrap; }
+.input-area .input-wrap { flex: 1; position: relative; min-width: 0; }
+.input-area input { width: 100%; padding: 12px 50px 12px 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; box-sizing: border-box; }
 .input-area input:focus { border-color: #2b579a; }
 .input-area input:disabled { background: #f5f5f5; }
-.input-area button { padding: 12px 24px; background: #2b579a; color: #fff; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; }
+.input-area .char-counter { position: absolute; right: 10px; bottom: 8px; font-size: 11px; color: #999; pointer-events: none; }
+.input-area .char-counter.over { color: #d32f2f; font-weight: 600; }
+.input-area button { padding: 12px 20px; background: #2b579a; color: #fff; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; white-space: nowrap; }
 .input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
 .loading { text-align: center; color: #999; font-size: 13px; padding: 8px; }
 </style>
@@ -44,7 +47,10 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
   </div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
-    <input type="text" id="input" placeholder="Задайте вопрос..." autofocus>
+    <div class="input-wrap">
+      <input type="text" id="input" placeholder="Задайте вопрос..." autofocus oninput="updateCounter()">
+      <span class="char-counter" id="charCounter">0/80</span>
+    </div>
     <button id="sendBtn" onclick="send()">Отправить</button>
   </div>
 </div>
@@ -65,7 +71,17 @@ fetch('/history').then(r => r.json()).then(history => {
   messages.scrollTop = messages.scrollHeight;
 });
 
-input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+const charCounter = document.getElementById('charCounter');
+const MAX_LEN = 80;
+
+function updateCounter() {
+  const len = input.value.length;
+  charCounter.textContent = len + '/' + MAX_LEN;
+  charCounter.classList.toggle('over', len > MAX_LEN);
+  sendBtn.disabled = len > MAX_LEN || len === 0;
+}
+
+input.addEventListener('keydown', e => { if (e.key === 'Enter' && !sendBtn.disabled) send(); });
 
 async function send() {
   if (exhausted) return;
