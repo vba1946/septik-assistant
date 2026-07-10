@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Сессия {{ session_id[:8] }}…</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 24px; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 18px; color: #1a3a6b; margin-bottom: 4px; }
+.sub { font-size: 13px; color: #666; margin-bottom: 16px; }
+.msg { margin-bottom: 12px; }
+.msg .role { font-size: 11px; color: #999; margin-bottom: 2px; }
+.msg .content { background: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.msg.user .content { border-left: 3px solid #2b579a; }
+.msg.bot .content { border-left: 3px solid #4caf50; }
+.msg .meta { font-size: 11px; color: #999; margin-top: 2px; }
+a { color: #1a3a6b; }
+</style></head>
+<body>
+<h1>Сессия: {{ session_id }}</h1>
+<p class="sub"><a href="/admin/dashboard">← Назад</a></p>
+{% for m in messages %}
+<div class="msg {{ m[0] }}">
+  <div class="role">{{ 'Пользователь' if m[0]=='user' else 'AI-консультант' }}</div>
+  <div class="content">{{ m[1] }}</div>
+  {% if m[0]=='bot' %}<div class="meta">токены: in={{ m[2] }} out={{ m[3] }} · {{ m[4][:19] }}</div>{% endif %}
+</div>
+{% else %}
+<p style="color:#999;text-align:center;padding:40px;">Нет сообщений</p>
+{% endfor %}
+</body></html>

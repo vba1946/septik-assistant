@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Админ-панель — {{ mode }}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 24px; }
+h1 { font-size: 20px; color: #1a3a6b; margin-bottom: 4px; }
+.sub { font-size: 13px; color: #666; margin-bottom: 20px; }
+h2 { font-size: 16px; color: #333; margin: 20px 0 10px; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
+th { background: #1a3a6b; color: #fff; padding: 10px 12px; font-size: 12px; text-align: left; }
+td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #eee; }
+tr:hover td { background: #f8f9ff; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.badge-ok { background: #e8f5e9; color: #2e7d32; }
+.badge-blocked { background: #ffebee; color: #c62828; }
+.badge-exhausted { background: #fff3e0; color: #e65100; }
+a { color: #1a3a6b; text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style></head>
+<body>
+<h1>Админ-панель · {{ mode }}</h1>
+<p class="sub"><a href="/">На сайт</a> · <a href="/admin?logout=1">Выйти</a></p>
+
+<h2>Сессии (последние 50)</h2>
+<table>
+<tr><th>ID</th><th>IP</th><th>Вопросов</th><th>Статус</th><th>Создана</th></tr>
+{% for s in sessions %}
+<tr>
+  <td><a href="/admin/session/{{ s[0] }}">{{ s[0][:8] }}…</a></td>
+  <td>{{ s[1] }}</td>
+  <td>{{ s[4] }}</td>
+  <td>{% if s[5] %}<span class="badge badge-blocked">заблокирована</span>{% elif s[6] %}<span class="badge badge-exhausted">лимит исчерпан</span>{% else %}<span class="badge badge-ok">активна</span>{% endif %}</td>
+  <td>{{ s[7][:19] }}</td>
+</tr>
+{% else %}
+<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">Нет сессий</td></tr>
+{% endfor %}
+</table>
+
+<h2>Контакты</h2>
+<table>
+<tr><th>Сессия</th><th>Имя</th><th>Телефон</th><th>Дата</th></tr>
+{% for c in contacts %}
+<tr>
+  <td><a href="/admin/session/{{ c[0] }}">{{ c[0][:8] }}…</a></td>
+  <td>{{ c[1] }}</td>
+  <td>{{ c[2] }}</td>
+  <td>{{ c[3][:19] }}</td>
+</tr>
+{% else %}
+<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">Нет контактов</td></tr>
+{% endfor %}
+</table>
+</body></html>
