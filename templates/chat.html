@@ -39,7 +39,7 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
   <div class="header">
     <div class="header-text">
       <h1>Система с AI-консультантом</h1>
-      <p>{{ mode }} · до {{ tier.maxq }} вопросов</p>
+      <p>{{ mode }} · Вопросов: <span id="counter">{{ tier.maxq }}</span></p>
     </div>
     <div class="links">
       <a href="/settings">⚙</a>
@@ -63,6 +63,7 @@ const messages = document.getElementById('messages');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 let exhausted = false;
+const counterEl = document.getElementById('counter');
 const urlToken = new URLSearchParams(window.location.search).get('token') || '';
 const welcomeEl = document.getElementById('welcomeMsg');
 
@@ -117,9 +118,12 @@ async function send() {
     const r = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: text, token: urlToken}) });
     const data = await r.json();
     removeLoading(idx);
-    if (data.questions_left !== undefined && data.questions_left <= 0) {
-      input.disabled = true;
-      sendBtn.disabled = true;
+    if (data.questions_left !== undefined) {
+      counterEl.textContent = data.questions_left + '/' + (data.max_questions || '');
+      if (data.questions_left <= 0) {
+        input.disabled = true;
+        sendBtn.disabled = true;
+      }
     }
     addMsg('bot', data.answer);
     if (data.exhausted) {
