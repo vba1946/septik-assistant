@@ -39,7 +39,7 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
   <div class="header">
     <div class="header-text">
       <h1>Система с AI-консультантом</h1>
-      <p>Тариф {{ mode }} · Вопросов: <span id="counter">0/{{ tier.maxq }}</span> · Символов: <span id="headerCharCounter">0/80</span></p>
+      <p>Тариф {{ mode }} · Вопросов: <span id="counter">0/{{ tier.maxq }}</span></p>
     </div>
     <div class="links">
       <a href="/settings">⚙</a>
@@ -84,7 +84,6 @@ fetch('/history').then(r => r.json()).then(history => {
 });
 
 const charCounter = document.getElementById('charCounter');
-const headerCharCounter = document.getElementById('headerCharCounter');
 const multiWarn = document.getElementById('multiWarn');
 const MAX_LEN = 80;
 
@@ -98,7 +97,6 @@ function updateCounter() {
   const overLen = len > MAX_LEN;
   const multiQ = detectMultiQuestion(text);
   charCounter.textContent = len + '/' + MAX_LEN;
-  headerCharCounter.textContent = len + '/' + MAX_LEN;
   charCounter.classList.toggle('over', overLen || multiQ);
   multiWarn.style.display = multiQ ? 'block' : 'none';
   sendBtn.disabled = overLen || len === 0 || multiQ;
