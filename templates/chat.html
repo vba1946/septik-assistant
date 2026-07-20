@@ -39,7 +39,7 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
   <div class="header">
     <div class="header-text">
       <h1>Система с AI-консультантом</h1>
-      <p>{{ mode }} · Вопросов: <span id="counter">{{ tier.maxq }}</span></p>
+      <p>{{ mode }} · Вопросов: <span id="counter">0/{{ tier.maxq }}</span></p>
     </div>
     <div class="links">
       <a href="/settings">⚙</a>
@@ -119,7 +119,8 @@ async function send() {
     const data = await r.json();
     removeLoading(idx);
     if (data.questions_left !== undefined) {
-      counterEl.textContent = data.questions_left + '/' + (data.max_questions || '');
+      const used = (data.max_questions || 0) - data.questions_left;
+      counterEl.textContent = used + '/' + (data.max_questions || '');
       if (data.questions_left <= 0) {
         input.disabled = true;
         sendBtn.disabled = true;
