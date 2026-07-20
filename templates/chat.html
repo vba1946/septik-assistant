@@ -66,8 +66,7 @@ let exhausted = false;
 const urlToken = new URLSearchParams(window.location.search).get('token') || '';
 const welcomeEl = document.getElementById('welcomeMsg');
 
-const categories = {{ categories | tojson }};
-const welcomeText = 'Здравствуйте, я AI-консультант, меня зовут Владимир. Тариф {{ mode }}: до {{ tier.maxq }} вопросов.' + ('{{ tier.label }}' === 'Simple' ? ' 1 категория из 6: ' + categories[0] : '') + '\nДлина каждого вопроса должна быть до 80 символов с пробелами, но только на 1 тему (категорию) автономной канализации.\nНачинаем.';
+const welcomeText = 'Здравствуйте, я AI-консультант, меня зовут Владимир. Тариф {{ mode }}: до {{ tier.maxq }} вопросов.' + ('{{ tier.label }}' === 'Simple' ? ' 1 категория из 6.' : '') + '\nДлина каждого вопроса должна быть до 80 символов с пробелами, но только на 1 тему (категорию) автономной канализации.\nНачинаем.';
 
 welcomeEl.textContent = welcomeText;
 
