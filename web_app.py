@@ -476,7 +476,8 @@ def ask():
         tokens_out = r.usage.completion_tokens if r.usage else 0
     except Exception as e:
         logging.error(f'Ask error: {e}')
-        return jsonify({'answer': f'Ошибка: {e}. Попробуйте позже или свяжитесь с менеджером.', 'questions_left': max(0, maxq - get_session_used(sid)), 'max_questions': maxq, 'exhausted': False})
+        msg = 'Временно недоступно. Попробуйте позже или свяжитесь с менеджером.'
+        return jsonify({'answer': msg, 'questions_left': max(0, maxq - get_session_used(sid)), 'max_questions': maxq, 'exhausted': False})
 
     increment_used(sid)
     save_dialog(sid, 'bot', answer, tokens_in, tokens_out)
