@@ -5,3 +5,4 @@ __pycache__/
 demo_assistant/chromadb/
 demo_assistant/tokens.db
 demo_assistant/.token_secret
+app.db
