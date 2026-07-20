@@ -46,12 +46,9 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
       <a href="/admin">admin</a>
     </div>
   </div>
-  <div class="messages" id="messages"></div>
-  {% if categories %}
-  <div style="font-size:11px;color:#888;padding:4px 24px 0;line-height:1.4;">
-    {% for c in categories %}<div>{{ c }}</div>{% endfor %}
+  <div class="messages" id="messages">
+    <div class="msg bot"><div class="bubble" id="welcomeMsg"></div></div>
   </div>
-  {% endif %}
   <div class="input-area">
     <div class="input-wrap">
       <input type="text" id="input" placeholder="Задайте вопрос..." autofocus oninput="updateCounter()">
@@ -67,14 +64,21 @@ const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 let exhausted = false;
 const urlToken = new URLSearchParams(window.location.search).get('token') || '';
+const welcomeEl = document.getElementById('welcomeMsg');
+
+const categories = {{ categories | tojson }};
+const welcomeText = 'Здравствуйте, я AI-консультант, меня зовут Владимир. Тариф {{ mode }}: до {{ tier.maxq }} вопросов.' + ('{{ tier.label }}' === 'Simple' ? ' 1 категория из 6: ' + categories[0] : '') + '\nДлина каждого вопроса должна быть до 80 символов с пробелами, но только на 1 тему (категорию) автономной канализации.\nНачинаем.';
+
+welcomeEl.textContent = welcomeText;
 
 // Load history
 fetch('/history').then(r => r.json()).then(history => {
-  for (const msg of history) {
-    addMsg(msg.role, msg.content);
-  }
-  if (history.length > 0 && history[history.length-1].role === 'bot') {
-    // check if last bot msg was exhaustion
+  if (history.length > 0) {
+    // Hide welcome, show history
+    welcomeEl.parentElement.style.display = 'none';
+    for (const msg of history) {
+      addMsg(msg.role, msg.content);
+    }
   }
   messages.scrollTop = messages.scrollHeight;
 });
