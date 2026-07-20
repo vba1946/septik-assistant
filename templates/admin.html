@@ -19,22 +19,23 @@ a { color: #1a3a6b; text-decoration: none; }
 a:hover { text-decoration: underline; }
 </style></head>
 <body>
-<h1>Админ-панель · {{ mode }}</h1>
-<p class="sub"><a href="/">На сайт</a> · <a href="/admin?logout=1">Выйти</a></p>
+<h1>Админ-панель</h1>
+<p class="sub"><a href="/">На сайт</a> · <a href="/admin/token">Токены</a> · <a href="/admin?logout=1">Выйти</a></p>
 
 <h2>Сессии (последние 50)</h2>
 <table>
-<tr><th>ID</th><th>IP</th><th>Вопросов</th><th>Статус</th><th>Создана</th></tr>
+<tr><th>ID</th><th>IP</th><th>Тариф</th><th>Вопросов</th><th>Статус</th><th>Создана</th></tr>
 {% for s in sessions %}
 <tr>
   <td><a href="/admin/session/{{ s[0] }}">{{ s[0][:8] }}…</a></td>
   <td>{{ s[1] }}</td>
+  <td>{{ s[3] }}</td>
   <td>{{ s[4] }}</td>
   <td>{% if s[5] %}<span class="badge badge-blocked">заблокирована</span>{% elif s[6] %}<span class="badge badge-exhausted">лимит исчерпан</span>{% else %}<span class="badge badge-ok">активна</span>{% endif %}</td>
   <td>{{ s[7][:19] }}</td>
 </tr>
 {% else %}
-<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">Нет сессий</td></tr>
+<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">Нет сессий</td></tr>
 {% endfor %}
 </table>
 

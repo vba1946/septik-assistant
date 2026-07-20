@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Генератор токенов — Admin</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,system-ui,sans-serif; background:#f0f2f5; padding:40px; }
+.card { max-width:600px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:24px; }
+h1 { font-size:18px; color:#1a3a6b; margin-bottom:20px; }
+form { display:flex; flex-direction:column; gap:12px; }
+label { font-size:13px; color:#555; }
+select, input, button { padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+button { background:#2b579a; color:#fff; border:none; cursor:pointer; font-weight:600; }
+button:hover { background:#1a3a6b; }
+.result { margin-top:16px; padding:16px; background:#e8f5e9; border-radius:8px; font-size:13px; }
+.result code { display:block; word-break:break-all; background:#fff; padding:8px; border-radius:4px; margin-top:4px; font-size:12px; }
+.back { display:inline-block; margin-top:12px; font-size:13px; color:#2b579a; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Генератор токена доступа</h1>
+  <form method="post">
+    <label>Тариф:</label>
+    <select name="tier">
+      {% for t in tiers %}
+      <option value="{{ t }}">{{ t }}</option>
+      {% endfor %}
+    </select>
+    <label>Лимит вопросов (оставьте пустым — по умолчанию для тарифа):</label>
+    <input type="number" name="maxq" placeholder="Например: 10">
+    <button type="submit">Сгенерировать токен</button>
+  </form>
+  {% if result %}
+  <div class="result">
+    <strong>Токен создан:</strong>
+    <code>{{ result.token }}</code>
+    <p style="margin-top:8px;">
+      Тариф: <strong>{{ result.tier }}</strong><br>
+      Вопросов: <strong>{{ result.maxq }}</strong><br>
+      Действителен до: <strong>{{ result.expiry }}</strong>
+    </p>
+    <p style="margin-top:4px;">Ссылка для клиента:</p>
+    <code style="font-size:11px;">?token={{ result.token }}</code>
+  </div>
+  {% endif %}
+  <a class="back" href="/admin/dashboard">← Назад в админку</a>
+</div>
+</body>
+</html>

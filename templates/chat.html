@@ -28,6 +28,7 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
 .input-area input:disabled { background: #f5f5f5; }
 .input-area .char-counter { position: absolute; right: 10px; bottom: 8px; font-size: 11px; color: #999; pointer-events: none; }
 .input-area .char-counter.over { color: #d32f2f; font-weight: 600; }
+.input-area .multi-warn { display: none; font-size: 11px; color: #d32f2f; width: 100%; text-align: center; margin-top: 2px; }
 .input-area button { padding: 12px 20px; background: #2b579a; color: #fff; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; white-space: nowrap; }
 .input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
 .loading { text-align: center; color: #999; font-size: 13px; padding: 8px; }
@@ -46,12 +47,18 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
     </div>
   </div>
   <div class="messages" id="messages"></div>
+  {% if categories %}
+  <div style="font-size:11px;color:#888;padding:4px 24px 0;line-height:1.4;">
+    {% for c in categories %}<div>{{ c }}</div>{% endfor %}
+  </div>
+  {% endif %}
   <div class="input-area">
     <div class="input-wrap">
       <input type="text" id="input" placeholder="Задайте вопрос..." autofocus oninput="updateCounter()">
       <span class="char-counter" id="charCounter">0/80</span>
     </div>
     <button id="sendBtn" onclick="send()">Отправить</button>
+    <div class="multi-warn" id="multiWarn">Один вопрос за раз. Разделите на отдельные сообщения.</div>
   </div>
 </div>
 <script>
@@ -59,6 +66,7 @@ const messages = document.getElementById('messages');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 let exhausted = false;
+const urlToken = new URLSearchParams(window.location.search).get('token') || '';
 
 // Load history
 fetch('/history').then(r => r.json()).then(history => {
@@ -72,13 +80,22 @@ fetch('/history').then(r => r.json()).then(history => {
 });
 
 const charCounter = document.getElementById('charCounter');
+const multiWarn = document.getElementById('multiWarn');
 const MAX_LEN = 80;
 
+function detectMultiQuestion(text) {
+  return (text.match(/\?/g) || []).length > 1;
+}
+
 function updateCounter() {
-  const len = input.value.length;
+  const text = input.value;
+  const len = text.length;
+  const overLen = len > MAX_LEN;
+  const multiQ = detectMultiQuestion(text);
   charCounter.textContent = len + '/' + MAX_LEN;
-  charCounter.classList.toggle('over', len > MAX_LEN);
-  sendBtn.disabled = len > MAX_LEN || len === 0;
+  charCounter.classList.toggle('over', overLen || multiQ);
+  multiWarn.style.display = multiQ ? 'block' : 'none';
+  sendBtn.disabled = overLen || len === 0 || multiQ;
 }
 
 input.addEventListener('keydown', e => { if (e.key === 'Enter' && !sendBtn.disabled) send(); });
@@ -86,7 +103,7 @@ input.addEventListener('keydown', e => { if (e.key === 'Enter' && !sendBtn.disab
 async function send() {
   if (exhausted) return;
   const text = input.value.trim();
-  if (!text) return;
+  if (!text || detectMultiQuestion(text)) return;
 
   addMsg('user', text);
   input.value = '';
@@ -94,7 +111,7 @@ async function send() {
   const idx = addLoading();
 
   try {
-    const r = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: text}) });
+    const r = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: text, token: urlToken}) });
     const data = await r.json();
     removeLoading(idx);
     if (data.questions_left !== undefined && data.questions_left <= 0) {
@@ -155,7 +172,7 @@ async function submitContact(btn) {
   if (!name || !phone) { status.textContent = 'Заполните имя и телефон.'; return; }
   status.textContent = 'Отправка...';
   try {
-    const r = await fetch('/contact', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name: name, phone: phone}) });
+    const r = await fetch('/contact', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name: name, phone: phone, token: urlToken}) });
     const data = await r.json();
     status.textContent = data.message;
     if (data.ok) {
