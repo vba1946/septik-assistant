@@ -396,6 +396,11 @@ def settings():
         if api_key:
             cfg['api_key'] = api_key
         save_config(cfg)
+        if api_key:
+            try:
+                init_ai(api_key)
+            except Exception as e:
+                return render_template('settings.html', config=get_config(), models=AVAILABLE_MODELS, error=f'Ошибка подключения: {e}')
         return redirect(url_for('settings'))
     cfg = get_config()
     return render_template('settings.html', config=cfg, models=AVAILABLE_MODELS)
