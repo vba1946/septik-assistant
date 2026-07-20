@@ -454,26 +454,29 @@ def ask():
     cfg = get_config()
     save_dialog(sid, 'user', question)
 
-    query_kwargs = {'query_texts': [question], 'n_results': 5}
-    if tier == 'simple':
-        query_kwargs['where'] = {'category': 1}
+    try:
+        query_kwargs = {'query_texts': [question], 'n_results': 5}
+        if tier == 'simple':
+            query_kwargs['where'] = {'category': 1}
+        results = collection.query(**query_kwargs)
+        context = '\n\n'.join(
+            f'[{m["source"]}]\n{d}'
+            for d, m in zip(results['documents'][0], results['metadatas'][0])
+        )
+        system = build_instructions(tier) + '\n\n=== БАЗА ЗНАНИЙ ===\n' + context
 
-    results = collection.query(**query_kwargs)
-    context = '\n\n'.join(
-        f'[{m["source"]}]\n{d}'
-        for d, m in zip(results['documents'][0], results['metadatas'][0])
-    )
-    system = build_instructions(tier) + '\n\n=== БАЗА ЗНАНИЙ ===\n' + context
+        r = llm.chat.completions.create(
+            model=cfg.get('model', DEFAULT_MODEL),
+            messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': question}],
+            temperature=cfg.get('temperature', DEFAULT_TEMPERATURE)
+        )
 
-    r = llm.chat.completions.create(
-        model=cfg.get('model', DEFAULT_MODEL),
-        messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': question}],
-        temperature=cfg.get('temperature', DEFAULT_TEMPERATURE)
-    )
-
-    answer = r.choices[0].message.content
-    tokens_in = r.usage.prompt_tokens if r.usage else 0
-    tokens_out = r.usage.completion_tokens if r.usage else 0
+        answer = r.choices[0].message.content
+        tokens_in = r.usage.prompt_tokens if r.usage else 0
+        tokens_out = r.usage.completion_tokens if r.usage else 0
+    except Exception as e:
+        logging.error(f'Ask error: {e}')
+        return jsonify({'answer': f'Ошибка: {e}. Попробуйте позже или свяжитесь с менеджером.', 'questions_left': max(0, maxq - get_session_used(sid)), 'max_questions': maxq, 'exhausted': False})
 
     increment_used(sid)
     save_dialog(sid, 'bot', answer, tokens_in, tokens_out)
