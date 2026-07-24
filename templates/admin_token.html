@@ -43,7 +43,8 @@ button:hover { background:#1a3a6b; }
       Действителен до: <strong>{{ result.expiry }}</strong>
     </p>
     <p style="margin-top:4px;">Ссылка для клиента:</p>
-    <code style="font-size:11px;">?token={{ result.token }}</code>
+    <code style="font-size:11px;" id="tokenLink">{{ request.host_url }}?token={{ result.token }}</code>
+    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('tokenLink').textContent)" style="margin-top:8px;padding:6px 12px;font-size:12px;background:#2b579a;color:#fff;border:none;border-radius:6px;cursor:pointer;">Копировать ссылку</button>
   </div>
   {% endif %}
   <a class="back" href="/admin/dashboard">← Назад в админку</a>
