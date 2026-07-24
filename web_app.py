@@ -24,7 +24,7 @@ DEFAULT_TEMPERATURE = 0.3
 COLLECTION_NAME = 'septiki_knowledge'
 
 # Legacy MODE fallback (when no token)
-MODE = os.environ.get('MODE', 'pro').lower()
+MODE = os.environ.get('MODE', 'dev').lower()
 
 AVAILABLE_MODELS = {
     'gpt-4.1-mini-2025-04-14': 'GPT-4.1 Mini',
