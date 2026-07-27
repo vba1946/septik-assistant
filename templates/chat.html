@@ -71,14 +71,10 @@ const welcomeText = 'Здравствуйте, я AI-консультант, м�
 
 welcomeEl.textContent = welcomeText;
 
-// Load history
+// Always show welcome, load history below
 fetch('/history').then(r => r.json()).then(history => {
-  if (history.length > 0) {
-    // Hide welcome, show history
-    welcomeEl.parentElement.style.display = 'none';
-    for (const msg of history) {
-      addMsg(msg.role, msg.content);
-    }
+  for (const msg of history) {
+    addMsg(msg.role, msg.content);
   }
   messages.scrollTop = messages.scrollHeight;
 });
