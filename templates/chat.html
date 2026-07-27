@@ -71,13 +71,7 @@ const welcomeText = 'Здравствуйте, я AI-консультант, м�
 
 welcomeEl.textContent = welcomeText;
 
-// Always show welcome, load history below
-fetch('/history').then(r => r.json()).then(history => {
-  for (const msg of history) {
-    addMsg(msg.role, msg.content);
-  }
-  messages.scrollTop = messages.scrollHeight;
-});
+messages.scrollTop = messages.scrollHeight;
 
 const charCounter = document.getElementById('charCounter');
 const multiWarn = document.getElementById('multiWarn');
