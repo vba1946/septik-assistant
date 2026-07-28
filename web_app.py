@@ -425,11 +425,33 @@ def history():
     return resp
 
 
+rate_limit_store = {}
+
+def check_rate_limit(ip, max_requests=10, window=60):
+    now = time.time()
+    if ip not in rate_limit_store:
+        rate_limit_store[ip] = []
+    rate_limit_store[ip] = [t for t in rate_limit_store[ip] if now - t < window]
+    if len(rate_limit_store[ip]) >= max_requests:
+        return False
+    rate_limit_store[ip].append(now)
+    return True
+
+
 @app.route('/ask', methods=['POST'])
 def ask():
     api_key = get_api_key()
     if not api_key:
         return jsonify({'answer': 'Сначала настройте API-ключ на главной странице.'})
+
+    ip = request.remote_addr or 'unknown'
+    origin = request.headers.get('Origin', '') or request.headers.get('Referer', '')
+    if origin and not any(d in origin for d in ['railway.app', 'localhost', '127.0.0.1']):
+        return jsonify({'answer': 'Доступ запрещён.'}), 403
+
+    if not check_rate_limit(ip):
+        return jsonify({'answer': 'Слишком много запросов. Подождите минуту.'}), 429
+
     if llm is None:
         try:
             init_ai(api_key)
@@ -437,7 +459,6 @@ def ask():
             return jsonify({'answer': f'Ошибка инициализации: {e}'})
 
     sid = get_session_id()
-    ip = request.remote_addr or 'unknown'
     token_raw = get_token_from_url()
     tier = resolve_tier(token_raw)
     is_blocked, _ = ensure_session(sid, ip, tier, token_raw)
