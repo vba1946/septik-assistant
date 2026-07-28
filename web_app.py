@@ -623,9 +623,10 @@ def admin_token():
 def health():
     return jsonify({'status': 'ok', 'mode': MODE, 'collection': COLLECTION_NAME})
 
+# Инициализация БД при старте (обязательно для Gunicorn)
+init_db()
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
     key = get_api_key()
