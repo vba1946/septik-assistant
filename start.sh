@@ -6,4 +6,4 @@ fi
 if [ -n "$DATA_DIR" ]; then
   mkdir -p "$DATA_DIR"
 fi
-exec python web_app.py
+exec gunicorn -w 2 -b 0.0.0.0:$PORT --timeout 120 web_app:app
