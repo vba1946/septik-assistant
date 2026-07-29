@@ -1,6 +1,8 @@
 """Продакшен: токены (Simple/PRO), сессии, админка, единая БД."""
 import os, sys, json, logging, uuid, sqlite3, hmac, hashlib, base64, time
 from datetime import datetime, timezone
+import smtplib, ssl
+from email.message import EmailMessage
 sys.stdout.reconfigure(encoding='utf-8')
 logging.basicConfig(level=logging.INFO)
 
@@ -394,15 +396,48 @@ def setup():
     return redirect(url_for('index'))
 
 
+def send_email_notification(name, phone, question=None):
+    cfg = get_config()
+    smtp_email = cfg.get('smtp_email', '')
+    smtp_password = cfg.get('smtp_password', '')
+    notify_email = cfg.get('notify_email', '')
+    if not smtp_email or not smtp_password or not notify_email:
+        logging.warning('Email notification: SMTP not configured')
+        return False
+    try:
+        msg = EmailMessage()
+        msg['Subject'] = 'Новый контакт от клиента'
+        msg['From'] = smtp_email
+        msg['To'] = notify_email
+        body = f'Имя: {name}\nТелефон: {phone}\n'
+        if question:
+            body += f'Вопрос: {question}\n'
+        msg.set_content(body)
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP_SSL('smtp.mail.ru', 465, context=ctx) as server:
+            server.login(smtp_email, smtp_password)
+            server.send_message(msg)
+        logging.info(f'Email sent to {notify_email}')
+        return True
+    except Exception as e:
+        logging.error(f'Email send error: {e}')
+        return False
+
+
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if request.method == 'POST':
         model = request.form.get('model', DEFAULT_MODEL)
         temperature = float(request.form.get('temperature', DEFAULT_TEMPERATURE))
         api_key = request.form.get('api_key', '').strip()
-        cfg = {'model': model, 'temperature': temperature}
+        smtp_email = request.form.get('smtp_email', '').strip()
+        smtp_password = request.form.get('smtp_password', '').strip()
+        notify_email = request.form.get('notify_email', '').strip()
+        cfg = {'model': model, 'temperature': temperature, 'smtp_email': smtp_email, 'notify_email': notify_email}
         if api_key:
             cfg['api_key'] = api_key
+        if smtp_password:
+            cfg['smtp_password'] = smtp_password
         save_config(cfg)
         if api_key:
             try:
@@ -565,6 +600,17 @@ def contact():
                  (sid, name, phone, datetime.now(timezone.utc).isoformat()))
     conn.commit()
     conn.close()
+    # Get last user question for email
+    last_q = ''
+    try:
+        rows = get_history(sid)
+        for r in reversed(rows):
+            if r[0] == 'user':
+                last_q = r[1][:200]
+                break
+    except Exception:
+        pass
+    send_email_notification(name, phone, last_q)
     return jsonify({'ok': True, 'message': 'Спасибо! Менеджер свяжется с вами.'})
 
 

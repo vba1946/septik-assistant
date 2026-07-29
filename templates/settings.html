@@ -45,6 +45,23 @@ body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; h
       <input type="number" id="temperature" name="temperature" step="0.1" min="0" max="2" value="{{ config.temperature }}">
       <div class="hint">0 — строго факты, 1 — сбалансировано, 2 — креативно</div>
     </div>
+    <hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0;">
+    <h2 style="font-size:16px;margin-bottom:16px;">Уведомления менеджеру</h2>
+    <div class="form-group">
+      <label for="smtp_email">Email для отправки уведомлений</label>
+      <input type="text" id="smtp_email" name="smtp_email" placeholder="vova_elena@mail.ru" value="{{ config.smtp_email or '' }}">
+      <div class="hint">С этого адреса будут отправляться уведомления о новых контактах</div>
+    </div>
+    <div class="form-group">
+      <label for="smtp_password">Пароль приложения (SMTP)</label>
+      <input type="password" id="smtp_password" name="smtp_password" placeholder="••••••••" value="">
+      <div class="hint">Для Mail.ru нужен пароль приложения. Создать: Mail.ru → Безопасность → Пароли для внешних приложений</div>
+    </div>
+    <div class="form-group">
+      <label for="notify_email">Email получателя (менеджер)</label>
+      <input type="text" id="notify_email" name="notify_email" placeholder="manager@mail.ru" value="{{ config.notify_email or '' }}">
+      <div class="hint">На этот адрес будут приходить уведомления</div>
+    </div>
     <div class="actions">
       <button type="submit">Сохранить</button>
       <a href="{{ url_for('index') }}">Назад к чату</a>
