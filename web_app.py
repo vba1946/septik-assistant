@@ -414,6 +414,23 @@ def settings():
     return render_template('settings.html', config=cfg, models=AVAILABLE_MODELS)
 
 
+@app.route('/session/info')
+def session_info():
+    sid = get_session_id()
+    ip = request.remote_addr or 'unknown'
+    token_raw = get_token_from_url()
+    tier = resolve_tier(token_raw)
+    ensure_session(sid, ip, tier, token_raw)
+    used = get_session_used(sid)
+    ti = get_tier_info(tier)
+    maxq = ti['maxq']
+    if token_raw:
+        _, token_maxq, _, err = validate_token(token_raw)
+        if not err:
+            maxq = token_maxq
+    return jsonify({'questions_used': used, 'max_questions': maxq})
+
+
 @app.route('/history')
 def history():
     sid = get_session_id()

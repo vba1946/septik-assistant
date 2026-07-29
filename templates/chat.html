@@ -73,6 +73,11 @@ welcomeEl.textContent = welcomeText;
 
 messages.scrollTop = messages.scrollHeight;
 
+// Load real counter from session
+fetch('/session/info').then(r => r.json()).then(info => {
+  counterEl.textContent = info.questions_used + '/' + info.max_questions;
+});
+
 const charCounter = document.getElementById('charCounter');
 const multiWarn = document.getElementById('multiWarn');
 const MAX_LEN = 80;
