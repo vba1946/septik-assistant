@@ -74,7 +74,8 @@ welcomeEl.textContent = welcomeText;
 messages.scrollTop = messages.scrollHeight;
 
 // Load real counter from session
-fetch('/session/info').then(r => r.json()).then(info => {
+const infoUrl = urlToken ? '/session/info?token=' + urlToken : '/session/info';
+fetch(infoUrl).then(r => r.json()).then(info => {
   counterEl.textContent = info.questions_used + '/' + info.max_questions;
 });
 
