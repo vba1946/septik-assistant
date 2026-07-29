@@ -428,7 +428,8 @@ def session_info():
         _, token_maxq, _, err = validate_token(token_raw)
         if not err:
             maxq = token_maxq
-    return jsonify({'questions_used': used, 'max_questions': maxq})
+    exhausted = used >= maxq
+    return jsonify({'questions_used': used, 'max_questions': maxq, 'exhausted': exhausted, 'exhaust_msg': ti['exhaust_msg']})
 
 
 @app.route('/history')

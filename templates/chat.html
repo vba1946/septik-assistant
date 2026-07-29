@@ -77,6 +77,13 @@ messages.scrollTop = messages.scrollHeight;
 const infoUrl = urlToken ? '/session/info?token=' + urlToken : '/session/info';
 fetch(infoUrl).then(r => r.json()).then(info => {
   counterEl.textContent = info.questions_used + '/' + info.max_questions;
+  if (info.exhausted) {
+    exhausted = true;
+    input.disabled = true;
+    sendBtn.disabled = true;
+    addMsg('bot', info.exhaust_msg);
+    addContactForm();
+  }
 });
 
 const charCounter = document.getElementById('charCounter');
