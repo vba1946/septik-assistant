@@ -315,10 +315,10 @@ def ensure_session(sid, ip, tier='simple', token=''):
         conn.commit()
         row = (1 if blocked else 0, 0, tier)
     conn.close()
-    # Update tier if token provides a different one
+    # Update tier if token provides a different one, reset counter
     if token and row[2] != tier:
         conn = sqlite3.connect(DB_PATH)
-        conn.execute('UPDATE sessions SET tier=?, token=? WHERE id=?', (tier, token, sid))
+        conn.execute('UPDATE sessions SET tier=?, token=?, questions_used=0 WHERE id=?', (tier, token, sid))
         conn.commit()
         conn.close()
     return row[0] == 1, row[1] == 1
