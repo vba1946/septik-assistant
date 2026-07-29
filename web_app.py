@@ -539,6 +539,7 @@ def ask():
     exhausted = used_new >= maxq
     if exhausted:
         set_limit_reached(sid)
+        answer = answer + '\n\n' + ti['exhaust_msg']
 
     resp = make_response(jsonify({
         'answer': answer,
