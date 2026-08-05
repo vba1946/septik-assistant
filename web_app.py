@@ -310,9 +310,17 @@ def resolve_tier(token_raw=''):
     return resolve_fallback_tier()
 
 
+def get_client_ip():
+    """Real client IP: Railway hides it behind X-Forwarded-For."""
+    fwd = request.headers.get('X-Forwarded-For', '')
+    if fwd:
+        return fwd.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
+
+
 def resolve_fallback_tier():
     """No-token visitors get 'guest' (blocked) unless explicitly allowed via env."""
-    ip = request.remote_addr or ''
+    ip = get_client_ip()
     if ip in ('127.0.0.1', '::1'):
         return MODE if MODE in TIER_CONFIG else 'dev'
     fallback = os.environ.get('FALLBACK_TIER', '').strip().lower()
@@ -391,7 +399,7 @@ def index():
     if not api_key:
         return render_template('setup.html')
     sid = get_session_id()
-    ip = request.remote_addr or 'unknown'
+    ip = get_client_ip()
     ensure_session(sid, ip, tier, token_raw)
     ti = get_tier_info(tier)
     cats_shown = [CATEGORIES_ALL[i] for i in ti['cat_indices']]
@@ -436,7 +444,7 @@ def settings():
 @app.route('/session/info')
 def session_info():
     sid = get_session_id()
-    ip = request.remote_addr or 'unknown'
+    ip = get_client_ip()
     token_raw = get_token_from_url()
     tier = resolve_tier(token_raw)
     ensure_session(sid, ip, tier, token_raw)
@@ -454,7 +462,7 @@ def session_info():
 @app.route('/history')
 def history():
     sid = get_session_id()
-    ip = request.remote_addr or 'unknown'
+    ip = get_client_ip()
     ensure_session(sid, ip)
     rows = get_history(sid)
     resp = make_response(jsonify([{'role': r[0], 'content': r[1]} for r in rows]))
@@ -496,7 +504,7 @@ def ask():
     if not api_key:
         return jsonify({'answer': 'Сначала настройте API-ключ на главной странице.'})
 
-    ip = request.remote_addr or 'unknown'
+    ip = get_client_ip()
     origin = request.headers.get('Origin', '') or request.headers.get('Referer', '')
     allowed_origins = [d.strip() for d in os.environ.get('ALLOWED_ORIGINS', '').split(',') if d.strip()] + \
                       ['railway.app', 'localhost', '127.0.0.1']
