@@ -708,6 +708,8 @@ def debug():
         'railway_service_id': os.environ.get('RAILWAY_SERVICE_ID', ''),
         'railway_project_id': os.environ.get('RAILWAY_PROJECT_ID', ''),
         'railway_deployment_id': os.environ.get('RAILWAY_DEPLOYMENT_ID', ''),
+        'railway_environment_id': os.environ.get('RAILWAY_ENVIRONMENT_ID', ''),
+        'railway_environment_name': os.environ.get('RAILWAY_ENVIRONMENT_NAME', ''),
     }
     return jsonify(info)
 
