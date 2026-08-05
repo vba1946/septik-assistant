@@ -87,6 +87,14 @@ TIER_CONFIG = {
         'limit_msg': 'Без лимита вопросов.',
         'exhaust_msg': '',
     },
+    'guest': {
+        'label': 'Гость',
+        'maxq': 0,
+        'cat_count': 0,
+        'cat_indices': [],
+        'limit_msg': 'Доступ по токену.',
+        'exhaust_msg': 'Для доступа к консультанту необходима ссылка с токеном доступа. Если вы не получили ссылку — оставьте свои контакты (имя, телефон), менеджер свяжется с вами.',
+    },
 }
 
 INSTRUCTIONS_TPL = """РОЛЬ И НАЗНАЧЕНИЕ AI-КОНСУЛЬТАНТА
@@ -294,12 +302,23 @@ def get_token_from_url():
 
 
 def resolve_tier(token_raw=''):
-    """Return tier name from token, or fallback to MODE."""
+    """Return tier name from token, or fallback (never dev by default)."""
     if token_raw:
         _, _, tier, err = validate_token(token_raw)
         if not err and tier:
             return tier
-    return MODE
+    return resolve_fallback_tier()
+
+
+def resolve_fallback_tier():
+    """No-token visitors get 'guest' (blocked) unless explicitly allowed via env."""
+    ip = request.remote_addr or ''
+    if ip in ('127.0.0.1', '::1'):
+        return MODE if MODE in TIER_CONFIG else 'dev'
+    fallback = os.environ.get('FALLBACK_TIER', '').strip().lower()
+    if fallback in TIER_CONFIG:
+        return fallback
+    return 'guest'
 
 
 def ensure_session(sid, ip, tier='simple', token=''):
@@ -456,6 +475,21 @@ def check_rate_limit(ip, max_requests=10, window=60):
     return True
 
 
+def check_daily_budget():
+    """Hard daily cap on OpenAI spend (shared across workers via DB)."""
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(tokens_in + tokens_out), 0) "
+        "FROM dialog_history WHERE created_at LIKE ?", (today + '%',)).fetchone()
+    conn.close()
+    calls = row[0] if row else 0
+    tokens = row[1] if row else 0
+    max_calls = int(os.environ.get('MAX_DAILY_CALLS', 300))
+    max_tokens = int(os.environ.get('MAX_DAILY_TOKENS', 200000))
+    return calls < max_calls and tokens < max_tokens
+
+
 @app.route('/ask', methods=['POST'])
 def ask():
     api_key = get_api_key()
@@ -464,11 +498,18 @@ def ask():
 
     ip = request.remote_addr or 'unknown'
     origin = request.headers.get('Origin', '') or request.headers.get('Referer', '')
-    if origin and not any(d in origin for d in ['railway.app', 'localhost', '127.0.0.1']):
+    allowed_origins = [d.strip() for d in os.environ.get('ALLOWED_ORIGINS', '').split(',') if d.strip()] + \
+                      ['railway.app', 'localhost', '127.0.0.1']
+    if not origin or not any(d in origin for d in allowed_origins):
+        logging.warning(f'Blocked /ask without allowed origin. ip={ip} origin={origin!r}')
         return jsonify({'answer': 'Доступ запрещён.'}), 403
 
     if not check_rate_limit(ip):
         return jsonify({'answer': 'Слишком много запросов. Подождите минуту.'}), 429
+
+    if not check_daily_budget():
+        logging.warning('Daily budget exceeded, /ask blocked')
+        return jsonify({'answer': 'Сервис временно недоступен. Попробуйте позже или свяжитесь с менеджером.'}), 429
 
     if llm is None:
         try:
