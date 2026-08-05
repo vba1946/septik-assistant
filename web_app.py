@@ -705,6 +705,9 @@ def debug():
         'data_files': os.listdir('/data') if os.path.exists('/data') else [],
         'data_dir_files': os.listdir(DATA_DIR) if os.path.exists(DATA_DIR) else [],
         'cwd': os.getcwd(),
+        'railway_service_id': os.environ.get('RAILWAY_SERVICE_ID', ''),
+        'railway_project_id': os.environ.get('RAILWAY_PROJECT_ID', ''),
+        'railway_deployment_id': os.environ.get('RAILWAY_DEPLOYMENT_ID', ''),
     }
     return jsonify(info)
 
