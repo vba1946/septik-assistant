@@ -691,6 +691,23 @@ def admin_token():
 def health():
     return jsonify({'status': 'ok', 'mode': MODE, 'collection': COLLECTION_NAME})
 
+
+@app.route('/debug')
+def debug():
+    info = {
+        'data_dir_env': os.environ.get('DATA_DIR', ''),
+        'db_path': DB_PATH,
+        'railway_volume_name': os.environ.get('RAILWAY_VOLUME_NAME', ''),
+        'railway_volume_mount_path': os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', ''),
+        'data_exists': os.path.exists('/data'),
+        'data_isdir': os.path.isdir('/data'),
+        'data_writable': os.access('/data', os.W_OK) if os.path.exists('/data') else False,
+        'data_files': os.listdir('/data') if os.path.exists('/data') else [],
+        'data_dir_files': os.listdir(DATA_DIR) if os.path.exists(DATA_DIR) else [],
+        'cwd': os.getcwd(),
+    }
+    return jsonify(info)
+
 # Инициализация БД при старте (обязательно для Gunicorn)
 init_db()
 
