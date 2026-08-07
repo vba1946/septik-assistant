@@ -5,7 +5,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 KNOWLEDGE_DIR = Path(__file__).parent / 'knowledge'
-CHROMA_DIR = Path(__file__).parent / 'chromadb'
+CHROMA_DIR = Path(os.environ.get('CHROMA_DIR') or (os.environ.get('DATA_DIR', str(Path(__file__).parent)) + os.sep + 'chromadb'))
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
