@@ -208,19 +208,27 @@ def init_ai(api_key):
     CHROMA_DIR = os.environ.get('CHROMA_DIR', os.path.join(DATA_DIR, 'chromadb'))
     db = chromadb.PersistentClient(path=CHROMA_DIR)
 
-    def _get_collection():
-        return db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
+    def _fresh_client():
+        # Reopen the client so a worker that created it before ingestion sees new collections
+        return chromadb.PersistentClient(path=CHROMA_DIR)
 
-    lock_path = os.path.join(CHROMA_DIR, '.ingest.lock')
-    try:
-        collection = _get_collection()
+    def _get_collection(client):
+        return client.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
+
+    def _collection_or_none():
+        try:
+            return _get_collection(db), db
+        except Exception:
+            return None, db
+
+    collection, db = _collection_or_none()
+    if collection is not None:
         logging.info(f'ChromaDB loaded ({COLLECTION_NAME})')
         return
-    except Exception:
-        pass
 
     # Only one worker runs ingestion; others wait for it to finish
     os.makedirs(CHROMA_DIR, exist_ok=True)
+    lock_path = os.path.join(CHROMA_DIR, '.ingest.lock')
     got_lock = False
     try:
         fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -236,7 +244,8 @@ def init_ai(api_key):
             logging.info(f'ChromaDB {COLLECTION_NAME} не найдена, запуск индексации...')
             os.environ['OPENAI_API_KEY'] = api_key
             ingest_main()
-            collection = _get_collection()
+            db = _fresh_client()
+            collection = _get_collection(db)
             logging.info('Индексация завершена')
         finally:
             try:
@@ -247,12 +256,14 @@ def init_ai(api_key):
         # Another worker is indexing: wait for the collection to appear
         for _ in range(300):
             try:
-                collection = _get_collection()
+                db = _fresh_client()
+                collection = _get_collection(db)
                 logging.info(f'ChromaDB loaded after wait ({COLLECTION_NAME})')
                 return
             except Exception:
                 time.sleep(1)
-        collection = _get_collection()
+        db = _fresh_client()
+        collection = _get_collection(db)
 
 
 # --- DB init ---
