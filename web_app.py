@@ -207,16 +207,52 @@ def init_ai(api_key):
     emb_fn = embedding_functions.OpenAIEmbeddingFunction(**emb_kwargs)
     CHROMA_DIR = os.environ.get('CHROMA_DIR', os.path.join(DATA_DIR, 'chromadb'))
     db = chromadb.PersistentClient(path=CHROMA_DIR)
+
+    def _get_collection():
+        return db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
+
+    lock_path = os.path.join(CHROMA_DIR, '.ingest.lock')
     try:
-        collection = db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
+        collection = _get_collection()
         logging.info(f'ChromaDB loaded ({COLLECTION_NAME})')
+        return
     except Exception:
-        from ingest import main as ingest_main
-        logging.info(f'ChromaDB {COLLECTION_NAME} не найдена, запуск индексации...')
-        os.environ['OPENAI_API_KEY'] = api_key
-        ingest_main()
-        collection = db.get_collection(name=COLLECTION_NAME, embedding_function=emb_fn)
-        logging.info('Индексация завершена')
+        pass
+
+    # Only one worker runs ingestion; others wait for it to finish
+    os.makedirs(CHROMA_DIR, exist_ok=True)
+    got_lock = False
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+        got_lock = True
+    except FileExistsError:
+        got_lock = False
+
+    if got_lock:
+        try:
+            from ingest import main as ingest_main
+            logging.info(f'ChromaDB {COLLECTION_NAME} не найдена, запуск индексации...')
+            os.environ['OPENAI_API_KEY'] = api_key
+            ingest_main()
+            collection = _get_collection()
+            logging.info('Индексация завершена')
+        finally:
+            try:
+                os.remove(lock_path)
+            except OSError:
+                pass
+    else:
+        # Another worker is indexing: wait for the collection to appear
+        for _ in range(300):
+            try:
+                collection = _get_collection()
+                logging.info(f'ChromaDB loaded after wait ({COLLECTION_NAME})')
+                return
+            except Exception:
+                time.sleep(1)
+        collection = _get_collection()
 
 
 # --- DB init ---
