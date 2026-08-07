@@ -23,6 +23,10 @@ DEFAULT_MODEL = 'gpt-4.1-mini-2025-04-14'
 DEFAULT_TEMPERATURE = 0.3
 COLLECTION_NAME = 'septiki_knowledge'
 
+# OpenAI-compatible endpoint (e.g. proxyapi.ru) — set OPENAI_BASE_URL to use a proxy
+OPENAI_BASE_URL = os.environ.get('OPENAI_BASE_URL', '').strip()
+PROXYAPI_KEY = os.environ.get('PROXYAPI_KEY', '').strip()
+
 # Legacy MODE fallback (when no token)
 MODE = os.environ.get('MODE', 'dev').lower()
 
@@ -165,7 +169,12 @@ def save_config(cfg):
 
 def get_api_key():
     cfg = get_config()
-    key = cfg.get('api_key', '')
+    key = ''
+    if OPENAI_BASE_URL:
+        # Proxy endpoint in use: prefer proxy key over the stored OpenAI key
+        key = PROXYAPI_KEY or os.environ.get('OPENAI_API_KEY', '')
+    if not key:
+        key = cfg.get('api_key', '')
     if not key:
         key = os.environ.get('OPENAI_API_KEY', '')
     if not key:
@@ -188,10 +197,14 @@ def init_ai(api_key):
     import chromadb
     from chromadb.utils import embedding_functions
 
-    llm = OpenAI(api_key=api_key)
-    emb_fn = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=api_key, model_name='text-embedding-3-small'
-    )
+    llm_kwargs = {'api_key': api_key}
+    if OPENAI_BASE_URL:
+        llm_kwargs['base_url'] = OPENAI_BASE_URL
+    llm = OpenAI(**llm_kwargs)
+    emb_kwargs = {'api_key': api_key, 'model_name': 'text-embedding-3-small'}
+    if OPENAI_BASE_URL:
+        emb_kwargs['api_base'] = OPENAI_BASE_URL
+    emb_fn = embedding_functions.OpenAIEmbeddingFunction(**emb_kwargs)
     CHROMA_DIR = os.environ.get('CHROMA_DIR', os.path.join(DATA_DIR, 'chromadb'))
     db = chromadb.PersistentClient(path=CHROMA_DIR)
     try:
