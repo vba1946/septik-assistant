@@ -44,14 +44,17 @@ def chunk_text(text, source):
     return chunks
 
 def main():
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = os.environ.get('OPENAI_API_KEY') or os.environ.get('PROXYAPI_KEY', '')
     if not api_key:
-        raise RuntimeError('Укажите OPENAI_API_KEY')
+        raise RuntimeError('Укажите OPENAI_API_KEY или PROXYAPI_KEY')
+
+    base_url = os.environ.get('OPENAI_BASE_URL', '').strip()
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    emb_fn = embedding_functions.OpenAIEmbeddingFunction(
-        api_key=api_key, model_name='text-embedding-3-small'
-    )
+    emb_kwargs = {'api_key': api_key, 'model_name': 'text-embedding-3-small'}
+    if base_url:
+        emb_kwargs['api_base'] = base_url
+    emb_fn = embedding_functions.OpenAIEmbeddingFunction(**emb_kwargs)
     try:
         client.delete_collection('septiki_knowledge')
     except Exception:
