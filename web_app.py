@@ -283,6 +283,10 @@ def init_db():
     conn.execute('''CREATE TABLE IF NOT EXISTS contacts (
         id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT,
         name TEXT, phone TEXT, created_at TEXT)''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS qcache (
+        session_id TEXT, qid TEXT, answer TEXT, questions_left INTEGER,
+        max_questions INTEGER, exhausted INTEGER DEFAULT 0,
+        created_at TEXT, PRIMARY KEY (session_id, qid))''')
     conn.commit()
     conn.close()
 
@@ -607,10 +611,31 @@ def ask():
 
     data = request.get_json()
     question = data.get('question', '').strip() if data else ''
+    qid = data.get('qid', '').strip() if data else ''
     if not question:
         return jsonify({'answer': 'Введите вопрос.'})
     if question.count('?') > 1:
         return jsonify({'answer': 'Пожалуйста, задавайте один вопрос за раз. Разделите на отдельные сообщения.'})
+
+    # Idempotency: if this qid was already answered (connection dropped after server
+    # replied), return the cached answer WITHOUT counting the question again.
+    if qid:
+        try:
+            cconn = sqlite3.connect(DB_PATH)
+            row = cconn.execute(
+                'SELECT answer, questions_left, max_questions, exhausted FROM qcache WHERE session_id=? AND qid=?',
+                (sid, qid)).fetchone()
+            cconn.close()
+            if row:
+                return jsonify({
+                    'answer': row[0],
+                    'questions_left': row[1],
+                    'max_questions': row[2],
+                    'exhausted': bool(row[3]),
+                    'cached': True
+                })
+        except Exception as e:
+            logging.warning(f'qcache read error: {e}')
 
     cfg = get_config()
     save_dialog(sid, 'user', question)
@@ -650,6 +675,17 @@ def ask():
     if exhausted:
         set_limit_reached(sid)
         answer = answer + '\n\n' + ti['exhaust_msg']
+
+    if qid:
+        try:
+            cconn = sqlite3.connect(DB_PATH)
+            cconn.execute(
+                'INSERT OR REPLACE INTO qcache (session_id, qid, answer, questions_left, max_questions, exhausted, created_at) VALUES (?,?,?,?,?,?,?)',
+                (sid, qid, answer, left, maxq, int(exhausted), time.strftime('%Y-%m-%dT%H:%M:%S')))
+            cconn.commit()
+            cconn.close()
+        except Exception as e:
+            logging.warning(f'qcache write error: {e}')
 
     resp = make_response(jsonify({
         'answer': answer,

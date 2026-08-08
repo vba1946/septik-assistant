@@ -117,27 +117,41 @@ async function send() {
   sendBtn.disabled = true;
   const idx = addLoading();
 
-  try {
-    const r = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: text, token: urlToken}) });
-    const data = await r.json();
-    removeLoading(idx);
-    if (data.questions_left !== undefined) {
-      const used = (data.max_questions || 0) - data.questions_left;
-      counterEl.textContent = used + '/' + (data.max_questions || '');
-      if (data.questions_left <= 0) {
-        input.disabled = true;
-        sendBtn.disabled = true;
+  // qid: unique ID of this question. On connection drop we retry with the SAME
+  // qid, so the server returns the cached answer without counting the question again.
+  const qid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const r = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: text, token: urlToken, qid: qid}) });
+      const data = await r.json();
+      removeLoading(idx);
+      if (data.questions_left !== undefined) {
+        const used = (data.max_questions || 0) - data.questions_left;
+        counterEl.textContent = used + '/' + (data.max_questions || '');
+        if (data.questions_left <= 0) {
+          input.disabled = true;
+          sendBtn.disabled = true;
+        }
+      }
+      addMsg('bot', data.answer);
+      if (data.exhausted) {
+        exhausted = true;
+        addContactForm();
+      }
+      sendBtn.disabled = false;
+      input.focus();
+      return;
+    } catch {
+      // Connection dropped. Retry with the same qid so the question is not counted twice.
+      if (attempt < maxAttempts) {
+        await new Promise(res => setTimeout(res, 1000 * attempt));
       }
     }
-    addMsg('bot', data.answer);
-    if (data.exhausted) {
-      exhausted = true;
-      addContactForm();
-    }
-  } catch {
-    removeLoading(idx);
-    addMsg('bot', 'Ошибка соединения.');
   }
+  removeLoading(idx);
+  addMsg('bot', 'Соединение прервано. Ваш вопрос не списан — проверьте интернет/VPN и повторите вопрос.');
   sendBtn.disabled = false;
   input.focus();
 }
