@@ -629,7 +629,8 @@ def ask():
         r = llm.chat.completions.create(
             model=cfg.get('model', DEFAULT_MODEL),
             messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': question}],
-            temperature=cfg.get('temperature', DEFAULT_TEMPERATURE)
+            temperature=cfg.get('temperature', DEFAULT_TEMPERATURE),
+            max_tokens=int(os.environ.get('MAX_TOKENS', '300'))
         )
 
         answer = r.choices[0].message.content
